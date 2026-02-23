@@ -1,0 +1,209 @@
+{
+  "uploads": [
+    {
+      "id": "83581585fcb0",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "William Gibson - Johnny Mnemonic (AA89) - v.2.0.pdf",
+      "saved_as": "83581585fcb0_William Gibson - Johnny Mnemonic (AA89) - v.2.0.pdf",
+      "pages": 20,
+      "cost": 1.9048,
+      "size_bytes": 403998
+    },
+    {
+      "id": "42278f96363c",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Vulcanescu, Mircea - Extras dintr-o scrisoare - v.0.9.pdf",
+      "saved_as": "42278f96363c_Vulcanescu, Mircea - Extras dintr-o scrisoare - v.0.9.pdf",
+      "pages": 3,
+      "cost": 0.2857,
+      "size_bytes": 209585
+    },
+    {
+      "id": "000fe0ea5088",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Vonnegut, Kurt - Harrison Bergeron (AA91) - v.2.0.pdf",
+      "saved_as": "000fe0ea5088_Vonnegut, Kurt - Harrison Bergeron (AA91) - v.2.0.pdf",
+      "pages": 8,
+      "cost": 0.7619,
+      "size_bytes": 160429
+    },
+    {
+      "id": "a5efc9ed77c3",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Vonarburg, Elisabeth - Nodul (AA87) - v.2.0.pdf",
+      "saved_as": "a5efc9ed77c3_Vonarburg, Elisabeth - Nodul (AA87) - v.2.0.pdf",
+      "pages": 12,
+      "cost": 1.1429,
+      "size_bytes": 248529
+    },
+    {
+      "id": "0bc03820a48d",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Voltaire - 5. Micromegas - ctrl.pdf",
+      "saved_as": "0bc03820a48d_Voltaire - 5. Micromegas - ctrl.pdf",
+      "pages": 26,
+      "cost": 2.4762,
+      "size_bytes": 5796881
+    },
+    {
+      "id": "fedff45b5427",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Volkoff, Vladimir - Rapirea - ctrl.pdf",
+      "saved_as": "fedff45b5427_Volkoff, Vladimir - Rapirea - ctrl.pdf",
+      "pages": 380,
+      "cost": 36.1905,
+      "size_bytes": 46736821
+    },
+    {
+      "id": "b3365905bf8e",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Voiculescu, Vasile - Momaia - v.0.9.8.pdf",
+      "saved_as": "b3365905bf8e_Voiculescu, Vasile - Momaia - v.0.9.8.pdf",
+      "pages": 3,
+      "cost": 0.2857,
+      "size_bytes": 277775
+    },
+    {
+      "id": "97b497f6849e",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Voiculescu, Vasile - Moarte Amanata - v.0.9.8.pdf",
+      "saved_as": "97b497f6849e_Voiculescu, Vasile - Moarte Amanata - v.0.9.8.pdf",
+      "pages": 4,
+      "cost": 0.381,
+      "size_bytes": 60021
+    },
+    {
+      "id": "bc0d14565c9a",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:40:38",
+      "filename": "Voiculescu, Vasile - Micul Invatator - v.0.9.8.pdf",
+      "saved_as": "bc0d14565c9a_Voiculescu, Vasile - Micul Invatator - v.0.9.8.pdf",
+      "pages": 3,
+      "cost": 0.2857,
+      "size_bytes": 278786
+    },
+    {
+      "id": "f1eb4f6d6090",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Lostrita - v.0.9.8.pdf",
+      "saved_as": "f1eb4f6d6090_Voiculescu, Vasile - Lostrita - v.0.9.8.pdf",
+      "pages": 6,
+      "cost": 0.5714,
+      "size_bytes": 308637
+    },
+    {
+      "id": "70ede68bda4e",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Lobocoagularea Prefrontala - v.0.9.8.pdf",
+      "saved_as": "70ede68bda4e_Voiculescu, Vasile - Lobocoagularea Prefrontala - v.0.9.8.pdf",
+      "pages": 6,
+      "cost": 0.5714,
+      "size_bytes": 355954
+    },
+    {
+      "id": "8bf829fdd451",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Lacul Rau - v.0.9.8.pdf",
+      "saved_as": "8bf829fdd451_Voiculescu, Vasile - Lacul Rau - v.0.9.8.pdf",
+      "pages": 5,
+      "cost": 0.4762,
+      "size_bytes": 157189
+    },
+    {
+      "id": "343d41649197",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Iubire Magica - v.0.9.8.pdf",
+      "saved_as": "343d41649197_Voiculescu, Vasile - Iubire Magica - v.0.9.8.pdf",
+      "pages": 15,
+      "cost": 1.4286,
+      "size_bytes": 238326
+    },
+    {
+      "id": "b2bc03ddfff6",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Ispitele Parintelui Evtichie - v.0.9.8.pdf",
+      "saved_as": "b2bc03ddfff6_Voiculescu, Vasile - Ispitele Parintelui Evtichie - v.0.9.8.pdf",
+      "pages": 27,
+      "cost": 2.5714,
+      "size_bytes": 483032
+    },
+    {
+      "id": "56c20f8daa49",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Intrezariri.pdf",
+      "saved_as": "56c20f8daa49_Voiculescu, Vasile - Intrezariri.pdf",
+      "pages": 11,
+      "cost": 1.0476,
+      "size_bytes": 158710
+    },
+    {
+      "id": "53f057ea43ba",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - In Gradina Ghetsemani. Antologie De Poezie Mistica.pdf",
+      "saved_as": "53f057ea43ba_Voiculescu, Vasile - In Gradina Ghetsemani. Antologie De Poezie Mistica.pdf",
+      "pages": 176,
+      "cost": 16.7619,
+      "size_bytes": 1003570
+    },
+    {
+      "id": "84cbca8dc687",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Fata Din Java - v.1.0.pdf",
+      "saved_as": "84cbca8dc687_Voiculescu, Vasile - Fata Din Java - v.1.0.pdf",
+      "pages": 7,
+      "cost": 0.6667,
+      "size_bytes": 340537
+    },
+    {
+      "id": "a64d29a48e9b",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Din Tara Zimbrului.pdf",
+      "saved_as": "a64d29a48e9b_Voiculescu, Vasile - Din Tara Zimbrului.pdf",
+      "pages": 26,
+      "cost": 2.4762,
+      "size_bytes": 272588
+    },
+    {
+      "id": "09177972fbb4",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Din poezii.pdf",
+      "saved_as": "09177972fbb4_Voiculescu, Vasile - Din poezii.pdf",
+      "pages": 21,
+      "cost": 2.0,
+      "size_bytes": 247241
+    },
+    {
+      "id": "0ed6e1beac3d",
+      "date": "2026-02-23",
+      "timestamp": "2026-02-23T20:43:08",
+      "filename": "Voiculescu, Vasile - Destin.pdf",
+      "saved_as": "0ed6e1beac3d_Voiculescu, Vasile - Destin.pdf",
+      "pages": 9,
+      "cost": 0.8571,
+      "size_bytes": 120414
+    }
+  ],
+  "settings": {
+    "monthly_income": 2000,
+    "daily_pages": 700,
+    "days_per_month": 30
+  }
+}
