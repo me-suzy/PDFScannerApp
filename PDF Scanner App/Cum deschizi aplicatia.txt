@@ -1,0 +1,20 @@
+Pornești aplicația în 2 pași:
+
+1. Deschizi un terminal (CMD sau PowerShell) și rulezi:
+
+```cmd
+cd "d:\Teste cursor\PDF Scanner App"
+
+SAU DIRECT DESCHIZI:
+
+
+python app.py
+```
+
+2. Deschizi Chrome și mergi la:
+
+```
+http://127.0.0.1:5000
+```
+
+Atât! Serverul rămâne pornit cât timp terminalul e deschis. Când vrei să-l oprești, apeși `Ctrl+C` în terminal.
