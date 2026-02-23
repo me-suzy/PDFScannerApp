@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Scanner - Upload & Track</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        :root {
+            --bg: #0b0d13;
+            --bg2: #12141d;
+            --bg3: #181b27;
+            --bg4: #1f2333;
+            --accent: #6c5ce7;
+            --accent2: #a29bfe;
+            --green: #00b894;
+            --green2: #55efc4;
+            --blue: #0984e3;
+            --blue2: #74b9ff;
+            --red: #d63031;
+            --orange: #e17055;
+            --text: #e4e4ef;
+            --text2: #8b8da8;
+            --text3: #555770;
+            --border: #262940;
+            --r: 12px;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+        /* ===== TOP BAR ===== */
+        .topbar {
+            position:sticky; top:0; z-index:100;
+            background:var(--bg2);
+            border-bottom:1px solid var(--border);
+            display:flex; align-items:center;
+            padding:0 24px; height:56px;
+            gap:8px;
+        }
+        .topbar .brand {
+            font-size:18px; font-weight:700;
+            background:linear-gradient(135deg,var(--accent2),var(--blue2));
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            margin-right:24px; white-space:nowrap;
+        }
+        .topbar .brand i { -webkit-text-fill-color:var(--accent2); margin-right:4px; }
+        .tab-btn {
+            padding:8px 16px; border:none; background:none;
+            color:var(--text2); font-size:13px; font-weight:500;
+            cursor:pointer; border-radius:6px; transition:all .15s;
+            display:inline-flex; align-items:center; gap:6px; white-space:nowrap;
+        }
+        .tab-btn:hover { background:var(--bg4); color:var(--text); }
+        .tab-btn.active { background:var(--accent); color:#fff; }
+        .topbar .spacer { flex:1; }
+        .topbar .cost-chip {
+            font-size:12px; color:var(--green2); background:rgba(0,184,148,.1);
+            padding:5px 12px; border-radius:20px; border:1px solid rgba(0,184,148,.2);
+        }
+        .topbar .date-chip {
+            font-size:12px; color:var(--text2); margin-left:8px;
+        }
+
+        /* ===== MAIN ===== */
+        .main { max-width:1300px; margin:0 auto; padding:20px 24px; }
+        .page { display:none; }
+        .page.active { display:block; }
+
+        /* ===== UPLOAD PAGE (primary) ===== */
+        .upload-row { display:grid; grid-template-columns:1fr 380px; gap:20px; }
+        @media(max-width:960px){ .upload-row{grid-template-columns:1fr;} }
+
+        .upload-zone {
+            border:2px dashed var(--border); border-radius:var(--r);
+            padding:40px 24px; text-align:center; cursor:pointer;
+            transition:all .25s; position:relative; background:var(--bg2);
+        }
+        .upload-zone:hover,.upload-zone.over { border-color:var(--accent); background:rgba(108,92,231,.04); }
+        .upload-zone.over { transform:scale(1.005); box-shadow:0 0 40px rgba(108,92,231,.12); }
+        .upload-zone i.big { font-size:44px; color:var(--accent); margin-bottom:12px; }
+        .upload-zone h3 { font-size:17px; margin-bottom:4px; }
+        .upload-zone p { color:var(--text2); font-size:13px; }
+        .upload-zone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+        .upload-actions { display:flex; gap:8px; justify-content:center; margin-top:14px; }
+        .btn {
+            padding:9px 20px; border:none; border-radius:8px;
+            font-size:13px; font-weight:600; cursor:pointer;
+            display:inline-flex; align-items:center; gap:6px; transition:all .15s;
+        }
+        .btn-primary { background:linear-gradient(135deg,var(--accent),#5a4bd1); color:#fff; }
+        .btn-primary:hover { box-shadow:0 4px 18px rgba(108,92,231,.35); transform:translateY(-1px); }
+        .btn-primary:disabled { opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
+        .btn-ghost { background:var(--bg4); color:var(--text2); }
+        .btn-ghost:hover { color:var(--text); background:var(--bg3); }
+        .btn-green { background:var(--green); color:#fff; }
+        .btn-green:hover { background:#00a383; }
+        .btn-sm { padding:6px 12px; font-size:12px; }
+
+        .progress { width:100%; height:5px; background:var(--bg); border-radius:3px; margin-top:12px; overflow:hidden; display:none; }
+        .progress.on { display:block; }
+        .progress .bar { height:100%; width:0; background:linear-gradient(90deg,var(--accent),var(--green)); border-radius:3px; transition:width .3s; }
+
+        /* file list */
+        .flist { margin-top:14px; max-height:340px; overflow-y:auto; }
+        .fitem {
+            display:flex; align-items:center; gap:10px;
+            padding:10px 12px; background:var(--bg3); border-radius:8px;
+            margin-bottom:6px; animation:fadeIn .25s;
+        }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+        .fitem .ico { width:36px;height:36px;border-radius:8px;background:rgba(214,48,49,.1);color:var(--red);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
+        .fitem .inf { flex:1;min-width:0; }
+        .fitem .inf .n { font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+        .fitem .inf .m { font-size:11px;color:var(--text3);margin-top:1px; }
+        .badge { padding:3px 10px;border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap; }
+        .badge-ok { background:rgba(0,184,148,.12);color:var(--green2); }
+        .badge-wait { background:rgba(108,92,231,.12);color:var(--accent2); }
+        .badge-err { background:rgba(214,48,49,.12);color:var(--red); }
+        .fitem .x { width:26px;height:26px;border:none;background:rgba(214,48,49,.08);color:var(--red);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0; }
+        .fitem .x:hover { background:rgba(214,48,49,.2); }
+
+        /* right panel – live results */
+        .rpanel { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); display:flex; flex-direction:column; }
+        .rpanel .rhead { padding:14px 18px; border-bottom:1px solid var(--border); font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; }
+        .rpanel .rbody { padding:16px 18px; flex:1; overflow-y:auto; }
+
+        .earnings-box {
+            text-align:center; padding:20px 12px;
+            background:linear-gradient(135deg,rgba(0,184,148,.08),rgba(108,92,231,.04));
+            border:1px solid rgba(0,184,148,.2); border-radius:var(--r); margin-bottom:14px;
+        }
+        .earnings-box .lbl { font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.8px;font-weight:600; }
+        .earnings-box .amt { font-size:36px;font-weight:800;color:var(--green2);margin:4px 0;text-shadow:0 0 30px rgba(0,184,148,.25); }
+        .earnings-box .sub { font-size:12px;color:var(--text2); }
+
+        .sum-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+        .sum-cell { text-align:center; padding:10px; background:var(--bg3); border-radius:8px; }
+        .sum-cell .l { font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px; }
+        .sum-cell .v { font-size:18px;font-weight:700;margin-top:2px; }
+        .sum-cell .v.pg { color:var(--blue2); }
+        .sum-cell .v.fl { color:var(--accent2); }
+
+        .empty { text-align:center;padding:30px;color:var(--text3);font-size:13px; }
+        .empty i { font-size:32px;margin-bottom:8px;display:block;color:var(--border); }
+
+        /* ===== STATS STRIP ===== */
+        .stats-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+        @media(max-width:800px){ .stats-strip{grid-template-columns:repeat(2,1fr);} }
+        .scard {
+            background:var(--bg2); border:1px solid var(--border); border-radius:var(--r);
+            padding:16px 18px; transition:transform .15s;
+        }
+        .scard:hover { transform:translateY(-2px); }
+        .scard .stop { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+        .scard .sico { width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px; }
+        .sico.p { background:rgba(108,92,231,.12);color:var(--accent2); }
+        .sico.g { background:rgba(0,184,148,.12);color:var(--green2); }
+        .sico.b { background:rgba(9,132,227,.12);color:var(--blue2); }
+        .sico.o { background:rgba(225,112,85,.12);color:var(--orange); }
+        .scard .slbl { font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px; }
+        .scard .sval { font-size:22px;font-weight:700; }
+        .scard .ssub { font-size:11px;color:var(--text3);margin-top:2px; }
+
+        /* ===== PANELS (history, daily, monthly, settings) ===== */
+        .panel { background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px; }
+        .panel .ph { display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border); }
+        .panel .ph h3 { font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px; }
+        .panel .pb { padding:18px; }
+
+        .filter-row { display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px; }
+        .finput {
+            background:var(--bg);border:1px solid var(--border);border-radius:8px;
+            padding:7px 12px;color:var(--text);font-size:13px;outline:none;transition:border .15s;
+        }
+        .finput:focus { border-color:var(--accent); }
+
+        table { width:100%;border-collapse:collapse; }
+        th,td { padding:10px 12px;text-align:left;font-size:13px;border-bottom:1px solid var(--border); }
+        th { color:var(--text3);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.4px; }
+        tr:hover td { background:var(--bg4); }
+        td .del { background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:3px 6px;border-radius:4px; }
+        td .del:hover { color:var(--red);background:rgba(214,48,49,.08); }
+
+        .dgrid { display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px; }
+        .dcard {
+            background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+            padding:16px;transition:all .15s;
+        }
+        .dcard:hover { border-color:var(--accent);transform:translateY(-2px); }
+        .dcard .dh { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px; }
+        .dcard .dd { font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px; }
+        .dcard .dd i { color:var(--accent2); }
+        .dcard .de { font-size:17px;font-weight:700;color:var(--green2); }
+        .dcard .ds { display:flex;gap:14px;font-size:12px;color:var(--text2); }
+        .dcard .ds span { font-weight:600;color:var(--text); }
+        .dcard .df { margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);max-height:50px;overflow-y:auto; }
+
+        .mcard {
+            background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);
+            padding:18px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;margin-bottom:10px;
+        }
+        .mcard:hover { border-color:var(--blue); }
+        .mcard h4 { font-size:15px;margin-bottom:6px; }
+        .mcard .ms { display:flex;gap:16px;font-size:12px;color:var(--text2); }
+        .mcard .ms span { font-weight:600;color:var(--text); }
+        .mcard .mt { text-align:right; }
+        .mcard .mt .ma { font-size:22px;font-weight:700;color:var(--green2); }
+        .mcard .mt .ml { font-size:11px;color:var(--text3); }
+
+        /* settings */
+        .sform { max-width:420px; }
+        .fg { margin-bottom:16px; }
+        .fg label { display:block;font-size:13px;color:var(--text2);margin-bottom:4px;font-weight:500; }
+        .fg input { width:100%;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none; }
+        .fg input:focus { border-color:var(--accent); }
+        .fg .hint { font-size:11px;color:var(--text3);margin-top:3px; }
+        .cost-box { background:var(--bg3);border:1px solid var(--green);border-radius:var(--r);padding:18px;text-align:center;margin-top:20px; }
+        .cost-box .cl { font-size:12px;color:var(--text2); }
+        .cost-box .cv { font-size:28px;font-weight:700;color:var(--green2);margin-top:4px; }
+        .cost-box .cu { font-size:12px;color:var(--text3); }
+
+        /* toast */
+        .toasts { position:fixed;top:64px;right:20px;z-index:200;display:flex;flex-direction:column;gap:6px; }
+        .toast {
+            background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+            padding:12px 18px;display:flex;align-items:center;gap:8px;font-size:13px;
+            box-shadow:0 6px 24px rgba(0,0,0,.3);animation:tIn .25s;min-width:260px;
+        }
+        .toast.s { border-left:3px solid var(--green); }
+        .toast.e { border-left:3px solid var(--red); }
+        .toast.i { border-left:3px solid var(--blue); }
+        @keyframes tIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:none} }
+
+        input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+
+        ::-webkit-scrollbar{width:5px;height:5px}
+        ::-webkit-scrollbar-track{background:var(--bg)}
+        ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+        .spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .5s linear infinite;display:inline-block}
+        @keyframes sp{to{transform:rotate(360deg)}}
+    </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+    <div class="brand"><i class="fas fa-file-pdf"></i> PDF Scanner</div>
+    <button class="tab-btn active" data-p="upload" onclick="go('upload')"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+    <button class="tab-btn" data-p="dashboard" onclick="go('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</button>
+    <button class="tab-btn" data-p="history" onclick="go('history')"><i class="fas fa-history"></i> Istoric</button>
+    <button class="tab-btn" data-p="daily" onclick="go('daily')"><i class="fas fa-calendar-day"></i> Zilnic</button>
+    <button class="tab-btn" data-p="monthly" onclick="go('monthly')"><i class="fas fa-calendar-alt"></i> Lunar</button>
+    <button class="tab-btn" data-p="settings" onclick="go('settings')"><i class="fas fa-cog"></i> Setari</button>
+    <div class="spacer"></div>
+    <div class="cost-chip"><i class="fas fa-coins"></i> <span id="chipCost">0.0952</span> €/pag</div>
+    <div class="date-chip"><i class="fas fa-calendar"></i> <span id="chipDate"></span></div>
+</div>
+
+<div class="main">
+
+<!-- ========== UPLOAD (primary page) ========== -->
+<div class="page active" id="p-upload">
+
+    <!-- stats strip at top -->
+    <div class="stats-strip" id="uploadStats">
+        <div class="scard">
+            <div class="stop"><div class="sico p"><i class="fas fa-file-pdf"></i></div><div class="slbl">Fisiere Azi</div></div>
+            <div class="sval" id="usTodayFiles">0</div>
+            <div class="ssub" id="usTodayPages">0 pagini</div>
+        </div>
+        <div class="scard">
+            <div class="stop"><div class="sico g"><i class="fas fa-coins"></i></div><div class="slbl">Castig Azi</div></div>
+            <div class="sval" style="color:var(--green2)" id="usTodayCost">0.00 €</div>
+            <div class="ssub" id="usTodayPg2">0 pagini scanate</div>
+        </div>
+        <div class="scard">
+            <div class="stop"><div class="sico b"><i class="fas fa-chart-line"></i></div><div class="slbl">Luna Asta</div></div>
+            <div class="sval" id="usMonthCost">0.00 €</div>
+            <div class="ssub" id="usMonthPg">0 pagini</div>
+        </div>
+        <div class="scard">
+            <div class="stop"><div class="sico o"><i class="fas fa-database"></i></div><div class="slbl">Total General</div></div>
+            <div class="sval" id="usTotalCost">0.00 €</div>
+            <div class="ssub" id="usTotalPg">0 pagini</div>
+        </div>
+    </div>
+
+    <!-- upload + results -->
+    <div class="upload-row">
+        <div>
+            <div class="upload-zone" id="zone">
+                <input type="file" id="finput" accept=".pdf" multiple>
+                <i class="fas fa-cloud-upload-alt big"></i>
+                <h3>Trage fisierele PDF aici</h3>
+                <p>sau click pentru a selecta &bull; maxim 20 fisiere PDF</p>
+            </div>
+            <div class="progress" id="prog"><div class="bar" id="progBar"></div></div>
+            <div class="upload-actions" id="uActions" style="display:none">
+                <button class="btn btn-primary" id="uBtn" onclick="doUpload()"><i class="fas fa-paper-plane"></i> Upload &amp; Calculeaza</button>
+                <button class="btn btn-ghost" onclick="clearAll()"><i class="fas fa-trash-alt"></i> Sterge Tot</button>
+            </div>
+            <div class="flist" id="flist"></div>
+        </div>
+
+        <div class="rpanel">
+            <div class="rhead"><i class="fas fa-calculator"></i> Rezultat Upload</div>
+            <div class="rbody">
+                <div class="earnings-box">
+                    <div class="lbl"><i class="fas fa-coins"></i> Bani Castigati</div>
+                    <div class="amt" id="resAmt">0.00 €</div>
+                    <div class="sub" id="resSub">Upload PDF-uri pentru a calcula</div>
+                </div>
+                <div class="sum-row">
+                    <div class="sum-cell"><div class="l">Fisiere</div><div class="v fl" id="resFiles">0</div></div>
+                    <div class="sum-cell"><div class="l">Total Pagini</div><div class="v pg" id="resPages">0</div></div>
+                </div>
+                <div id="resList">
+                    <div class="empty"><i class="fas fa-inbox"></i>Rezultatele vor aparea aici</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== DASHBOARD ========== -->
+<div class="page" id="p-dashboard">
+    <div class="earnings-box" style="margin-bottom:20px">
+        <div class="lbl"><i class="fas fa-coins"></i> Bani Castigati Azi</div>
+        <div class="amt" id="dashAmt">0.00 €</div>
+        <div class="sub" id="dashSub">0 fisiere &bull; 0 pagini</div>
+    </div>
+    <div class="stats-strip">
+        <div class="scard"><div class="stop"><div class="sico p"><i class="fas fa-file-pdf"></i></div><div class="slbl">Fisiere Azi</div></div><div class="sval" id="dFiles">0</div><div class="ssub" id="dPages">0 pagini</div></div>
+        <div class="scard"><div class="stop"><div class="sico g"><i class="fas fa-euro-sign"></i></div><div class="slbl">Saptamana</div></div><div class="sval" id="dWeek">0.00 €</div><div class="ssub" id="dWeekP">0 pagini</div></div>
+        <div class="scard"><div class="stop"><div class="sico b"><i class="fas fa-chart-line"></i></div><div class="slbl">Luna</div></div><div class="sval" id="dMonth">0.00 €</div><div class="ssub" id="dMonthP">0 pagini</div></div>
+        <div class="scard"><div class="stop"><div class="sico o"><i class="fas fa-database"></i></div><div class="slbl">Total</div></div><div class="sval" id="dTotal">0.00 €</div><div class="ssub" id="dTotalP">0 pagini</div></div>
+    </div>
+    <!-- RESET buttons -->
+    <div class="panel" style="margin-bottom:20px">
+        <div class="ph"><h3><i class="fas fa-eraser"></i> Reset / Sterge Date</h3></div>
+        <div class="pb">
+            <div class="filter-row">
+                <button class="btn btn-sm" style="background:var(--red);color:#fff" onclick="resetToday()"><i class="fas fa-calendar-day"></i> Sterge Ziua de Azi</button>
+                <span style="color:var(--text3);font-size:13px">sau sterge o perioada:</span>
+                <input class="finput" type="text" id="resetFrom" placeholder="De la..." style="width:130px">
+                <input class="finput" type="text" id="resetTo" placeholder="Pana la..." style="width:130px">
+                <button class="btn btn-sm" style="background:var(--orange);color:#fff" onclick="resetPeriod()"><i class="fas fa-trash-alt"></i> Sterge Perioada</button>
+            </div>
+            <div style="font-size:12px;color:var(--text3);margin-top:6px"><i class="fas fa-info-circle"></i> Sterge toate fisierele PDF si inregistrarile din perioada selectata. Poti apoi sa reincepi ziua de lucru cu fisiere noi.</div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="ph"><h3><i class="fas fa-list"></i> Ultimele Zile</h3><button class="btn btn-sm btn-ghost" onclick="go('daily')"><i class="fas fa-arrow-right"></i> Vezi Tot</button></div>
+        <div class="pb"><div class="dgrid" id="dashDays"></div></div>
+    </div>
+</div>
+
+<!-- ========== HISTORY ========== -->
+<div class="page" id="p-history">
+    <div class="panel">
+        <div class="ph"><h3><i class="fas fa-history"></i> Istoric Upload</h3><button class="btn btn-sm btn-green" onclick="exportXl()"><i class="fas fa-file-excel"></i> Export Excel</button></div>
+        <div class="pb">
+            <div class="filter-row">
+                <input class="finput" type="text" id="fFrom" placeholder="De la..." style="width:130px">
+                <input class="finput" type="text" id="fTo" placeholder="Pana la..." style="width:130px">
+                <input class="finput" type="text" id="fSearch" placeholder="Cauta fisier..." style="width:180px">
+                <button class="btn btn-sm btn-primary" onclick="loadHist()"><i class="fas fa-search"></i> Filtreaza</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearHF()"><i class="fas fa-undo"></i> Reset</button>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <div style="font-size:13px;color:var(--text2)">
+                    Rezultate: <b id="hCnt">0</b> fisiere &bull; <b id="hPg">0</b> pagini &bull; <b id="hCost" style="color:var(--green2)">0.00 €</b>
+                </div>
+                <button class="btn btn-sm" style="background:var(--red);color:#fff;display:none" id="bulkDelBtn" onclick="bulkDelete()"><i class="fas fa-trash-alt"></i> Sterge Selectate (<span id="bulkCnt">0</span>)</button>
+            </div>
+            <div style="max-height:460px;overflow-y:auto">
+                <table><thead><tr><th style="width:36px"><input type="checkbox" id="selAll" onchange="toggleAll(this)"></th><th>Data</th><th>Ora</th><th>Fisier</th><th>Pagini</th><th>Cost (€)</th><th>Marime</th><th></th></tr></thead>
+                <tbody id="hBody"></tbody></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== DAILY ========== -->
+<div class="page" id="p-daily">
+    <div class="panel">
+        <div class="ph"><h3><i class="fas fa-calendar-day"></i> Sumar Zilnic</h3></div>
+        <div class="pb">
+            <div class="filter-row">
+                <input class="finput" type="text" id="dFrom" placeholder="De la..." style="width:130px">
+                <input class="finput" type="text" id="dTo" placeholder="Pana la..." style="width:130px">
+                <button class="btn btn-sm btn-primary" onclick="loadDaily()"><i class="fas fa-search"></i> Filtreaza</button>
+                <button class="btn btn-sm btn-ghost" onclick="clearDF()"><i class="fas fa-undo"></i> Reset</button>
+            </div>
+            <div class="dgrid" id="dayGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MONTHLY ========== -->
+<div class="page" id="p-monthly">
+    <div class="panel">
+        <div class="ph"><h3><i class="fas fa-calendar-alt"></i> Sumar Lunar</h3></div>
+        <div class="pb" id="monGrid"></div>
+    </div>
+</div>
+
+<!-- ========== SETTINGS ========== -->
+<div class="page" id="p-settings">
+    <div class="panel">
+        <div class="ph"><h3><i class="fas fa-cog"></i> Setari Calcul</h3></div>
+        <div class="pb">
+            <div class="sform">
+                <div class="fg"><label>Venit Lunar (EUR)</label><input type="number" id="sInc" value="2000" step="100"><div class="hint">Venitul lunar total</div></div>
+                <div class="fg"><label>Pagini pe Zi</label><input type="number" id="sDpg" value="700" step="50"><div class="hint">Media zilnica de pagini scanate</div></div>
+                <div class="fg"><label>Zile pe Luna</label><input type="number" id="sDm" value="30" step="1"><div class="hint">Zile lucratoare pe luna</div></div>
+                <button class="btn btn-primary" onclick="saveSets()"><i class="fas fa-save"></i> Salveaza</button>
+                <div class="cost-box"><div class="cl">Cost per Pagina</div><div class="cv" id="sCost">0.0952</div><div class="cu">EUR / pagina</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="toasts" id="toasts"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+let sel=[], cpp=0.095238;
+const $=id=>document.getElementById(id);
+
+function fmtD(d){const dt=new Date(d),dn=['Dum','Lun','Mar','Mie','Joi','Vin','Sam'],mn=['Ian','Feb','Mar','Apr','Mai','Iun','Iul','Aug','Sep','Oct','Nov','Dec'];return`${dn[dt.getDay()]}, ${dt.getDate()} ${mn[dt.getMonth()]} ${dt.getFullYear()}`}
+function fmtM(m){const mn=['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie','Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];const[y,mo]=m.split('-');return`${mn[+mo-1]} ${y}`}
+
+$('chipDate').textContent=fmtD(new Date());
+
+// NAV
+function go(p){
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));
+    $('p-'+p).classList.add('active');
+    document.querySelector(`.tab-btn[data-p="${p}"]`).classList.add('active');
+    if(p==='upload') loadStats();
+    if(p==='dashboard') loadDash();
+    if(p==='history') loadHist();
+    if(p==='daily') loadDaily();
+    if(p==='monthly') loadMon();
+    if(p==='settings') loadSets();
+}
+
+function toast(msg,t='i'){const c=$('toasts'),el=document.createElement('div');el.className=`toast ${t}`;const ic={s:'check-circle',e:'exclamation-circle',i:'info-circle'};el.innerHTML=`<i class="fas fa-${ic[t]}"></i> ${msg}`;c.appendChild(el);setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),250)},3500)}
+
+// UPLOAD
+const zone=$('zone'),fi=$('finput');
+['dragenter','dragover'].forEach(e=>zone.addEventListener(e,ev=>{ev.preventDefault();zone.classList.add('over')}));
+['dragleave','drop'].forEach(e=>zone.addEventListener(e,ev=>{ev.preventDefault();zone.classList.remove('over')}));
+zone.addEventListener('drop',e=>{addF(Array.from(e.dataTransfer.files).filter(f=>f.name.toLowerCase().endsWith('.pdf')))});
+fi.addEventListener('change',e=>{addF(Array.from(e.target.files));e.target.value=''});
+
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function countPages(file){
+    try{
+        const buf=await file.arrayBuffer();
+        const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+        return pdf.numPages;
+    }catch(e){return 0}
+}
+
+function addF(files){
+    const pdfs=files.filter(f=>f.name.toLowerCase().endsWith('.pdf'));
+    if(!pdfs.length){toast('Doar fisiere PDF!','e');return}
+    if(sel.length+pdfs.length>20){toast('Maxim 20 fisiere!','e');return}
+    const startIdx=sel.length;
+    pdfs.forEach(f=>sel.push({file:f,pages:null}));
+    renderF();
+    pdfs.forEach((f,i)=>{
+        countPages(f).then(pg=>{
+            const idx=startIdx+i;
+            if(idx<sel.length && sel[idx].file===f) sel[idx].pages=pg;
+            renderF();
+            updatePreviewTotals();
+        });
+    });
+}
+
+function rmF(i){sel.splice(i,1);renderF();updatePreviewTotals()}
+
+function clearAll(){
+    sel=[];renderF();updatePreviewTotals();
+    $('resList').innerHTML='<div class="empty"><i class="fas fa-inbox"></i>Rezultatele vor aparea aici</div>';
+    $('resAmt').textContent='0.00 €';$('resSub').textContent='Upload PDF-uri pentru a calcula';
+    $('resFiles').textContent='0';$('resPages').textContent='0';
+}
+
+function updatePreviewTotals(){
+    const counted=sel.filter(s=>s.pages!==null);
+    const totalPg=counted.reduce((s,x)=>s+x.pages,0);
+    const totalCost=totalPg*cpp;
+    $('resFiles').textContent=sel.length;
+    $('resPages').textContent=totalPg;
+    $('resAmt').textContent=totalCost.toFixed(2)+' €';
+    if(sel.length>0){
+        const still=sel.filter(s=>s.pages===null).length;
+        $('resSub').textContent=still>0?`Se numara paginile... (${still} ramas)`:`${sel.length} fisiere selectate - gata de upload`;
+    }else{
+        $('resSub').textContent='Upload PDF-uri pentru a calcula';
+    }
+}
+
+function renderF(){
+    const c=$('flist'),a=$('uActions');
+    if(!sel.length){c.innerHTML='';a.style.display='none';return}
+    a.style.display='flex';
+    c.innerHTML=sel.map((s,i)=>{
+        const f=s.file;
+        const sizeMB=(f.size/1048576).toFixed(2);
+        let badge;
+        if(s.pages===null) badge='<span class="badge badge-wait"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Se numara...</span>';
+        else if(s.pages===0) badge='<span class="badge badge-err"><i class="fas fa-times"></i> Eroare PDF</span>';
+        else{
+            const cost=(s.pages*cpp).toFixed(2);
+            badge=`<span class="badge badge-ok"><i class="fas fa-file-alt"></i> ${s.pages} pag</span><span style="font-size:12px;font-weight:600;color:var(--green2);white-space:nowrap">${cost} €</span>`;
+        }
+        return`<div class="fitem"><div class="ico"><i class="fas fa-file-pdf"></i></div><div class="inf"><div class="n">${f.name}</div><div class="m">${sizeMB} MB</div></div>${badge}<button class="x" onclick="rmF(${i})"><i class="fas fa-times"></i></button></div>`;
+    }).join('');
+}
+
+async function doUpload(){
+    if(!sel.length)return;
+    const btn=$('uBtn');btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Se uploadeaza...';
+    const pr=$('prog'),bar=$('progBar');pr.classList.add('on');bar.style.width='20%';
+    const fd=new FormData();sel.forEach(s=>fd.append('files',s.file));
+    try{
+        bar.style.width='60%';
+        const r=await fetch('/api/upload',{method:'POST',body:fd});
+        bar.style.width='90%';
+        const d=await r.json();
+        if(d.error){toast(d.error,'e');return}
+        bar.style.width='100%';
+        $('resList').innerHTML=d.results.map(x=>`<div class="fitem"><div class="ico"><i class="fas fa-file-pdf"></i></div><div class="inf"><div class="n">${x.filename}</div><div class="m">${x.error||((x.size_mb||0)+' MB')}</div></div><span class="badge ${x.error?'badge-err':'badge-ok'}">${x.error?'<i class="fas fa-times"></i> Eroare':'<i class="fas fa-check"></i> '+x.pages+' pag'}</span>${!x.error?`<span style="font-size:12px;font-weight:600;color:var(--green2)">${x.cost.toFixed(2)}€</span>`:''}</div>`).join('');
+        $('resAmt').textContent=d.total_cost.toFixed(2)+' €';
+        $('resSub').textContent=d.results.filter(x=>!x.error).length+' fisiere uploadate cu succes';
+        $('resFiles').textContent=d.results.filter(x=>!x.error).length;
+        $('resPages').textContent=d.total_pages;
+        toast(`Upload OK! ${d.total_pages} pagini = ${d.total_cost.toFixed(2)} €`,'s');
+        sel=[];renderF();loadStats();
+    }catch(e){toast('Eroare: '+e.message,'e')}
+    finally{btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i> Upload & Calculeaza';setTimeout(()=>{pr.classList.remove('on');bar.style.width='0'},800)}
+}
+
+async function loadStats(){
+    try{
+        const r=await fetch('/api/stats');const d=await r.json();
+        cpp=d.cost_per_page;$('chipCost').textContent=cpp.toFixed(2);
+        $('usTodayFiles').textContent=d.today.files;$('usTodayPages').textContent=d.today.pages+' pagini';
+        $('usTodayCost').textContent=d.today.cost.toFixed(2)+' €';$('usTodayPg2').textContent=d.today.pages+' pagini scanate';
+        $('usMonthCost').textContent=d.month.cost.toFixed(2)+' €';$('usMonthPg').textContent=d.month.pages+' pagini';
+        $('usTotalCost').textContent=d.total.cost.toFixed(2)+' €';$('usTotalPg').textContent=d.total.pages+' pagini';
+    }catch(e){}
+}
+
+// DASHBOARD
+async function loadDash(){
+    try{
+        const[sr,dr]=await Promise.all([fetch('/api/stats'),fetch('/api/daily-summary')]);
+        const s=await sr.json(),dd=await dr.json();
+        cpp=s.cost_per_page;$('chipCost').textContent=cpp.toFixed(2);
+        $('dashAmt').textContent=s.today.cost.toFixed(2)+' €';
+        $('dashSub').textContent=s.today.files+' fisiere \u2022 '+s.today.pages+' pagini';
+        $('dFiles').textContent=s.today.files;$('dPages').textContent=s.today.pages+' pagini';
+        $('dWeek').textContent=s.week.cost.toFixed(2)+' €';$('dWeekP').textContent=s.week.pages+' pagini';
+        $('dMonth').textContent=s.month.cost.toFixed(2)+' €';$('dMonthP').textContent=s.month.pages+' pagini';
+        $('dTotal').textContent=s.total.cost.toFixed(2)+' €';$('dTotalP').textContent=s.total.pages+' pagini';
+        const days=dd.days.slice(0,6);
+        $('dashDays').innerHTML=days.length?days.map(d=>`<div class="dcard"><div class="dh"><div class="dd"><i class="fas fa-calendar-day"></i> ${fmtD(d.date)}</div><div class="de">${d.cost.toFixed(2)} €</div></div><div class="ds"><div>Fisiere: <span>${d.files}</span></div><div>Pagini: <span>${d.pages}</span></div></div><div class="df">${d.filenames.join(', ')}</div></div>`).join(''):'<div class="empty"><i class="fas fa-calendar-times"></i>Niciun upload</div>';
+    }catch(e){}
+}
+
+// HISTORY
+async function loadHist(){
+    let u='/api/history?';
+    const f=$('fFrom').value,t=$('fTo').value,s=$('fSearch').value;
+    if(f)u+=`from=${f}&`;if(t)u+=`to=${t}&`;if(s)u+=`search=${encodeURIComponent(s)}&`;
+    try{
+        const r=await fetch(u);const d=await r.json();
+        $('hCnt').textContent=d.total_files;$('hPg').textContent=d.total_pages;$('hCost').textContent=d.total_cost.toFixed(2)+' €';
+        $('selAll').checked=false;
+        $('hBody').innerHTML=d.uploads.length?d.uploads.map(u=>`<tr><td><input type="checkbox" class="row-chk" value="${u.id}" onchange="updateBulk()"></td><td>${u.timestamp.substring(0,10)}</td><td>${u.timestamp.substring(11,19)}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.filename}</td><td><b>${u.pages}</b></td><td style="color:var(--green2);font-weight:600">${u.cost.toFixed(2)}</td><td>${(u.size_bytes/1048576).toFixed(2)} MB</td><td><button class="del" onclick="delU('${u.id}')"><i class="fas fa-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">Niciun rezultat</td></tr>';
+        updateBulk();
+    }catch(e){}
+}
+
+function toggleAll(el){
+    document.querySelectorAll('.row-chk').forEach(c=>c.checked=el.checked);
+    updateBulk();
+}
+
+function updateBulk(){
+    const checked=document.querySelectorAll('.row-chk:checked');
+    const btn=$('bulkDelBtn');
+    $('bulkCnt').textContent=checked.length;
+    btn.style.display=checked.length>0?'inline-flex':'none';
+}
+
+async function bulkDelete(){
+    const checked=document.querySelectorAll('.row-chk:checked');
+    const ids=Array.from(checked).map(c=>c.value);
+    if(!ids.length)return;
+    if(!confirm(`Stergi ${ids.length} fisiere din istoric si din folderul Output?`))return;
+    try{
+        const r=await fetch('/api/delete-bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+        const d=await r.json();
+        toast(`${d.deleted} fisiere sterse`,'s');
+        loadHist();loadStats();
+    }catch(e){toast('Eroare la stergere','e')}
+}
+
+function clearHF(){$('fFrom').value='';$('fTo').value='';$('fSearch').value='';loadHist()}
+async function delU(id){if(!confirm('Stergi din istoric?'))return;await fetch(`/api/delete/${id}`,{method:'DELETE'});toast('Sters','s');loadHist();loadStats()}
+function exportXl(){window.location.href='/api/export-excel';toast('Se descarca Excel...','i')}
+
+// RESET functions
+async function resetToday(){
+    const today=new Date().toISOString().substring(0,10);
+    if(!confirm(`Stergi TOATE fisierele si datele din ${today}?\nPDF-urile vor fi sterse din folderul Output.\nPoti apoi sa reincepi ziua de lucru.`))return;
+    try{
+        const r=await fetch('/api/reset-period',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:today,to:today})});
+        const d=await r.json();
+        toast(`Ziua resetata! ${d.deleted} fisiere sterse`,'s');
+        loadDash();
+    }catch(e){toast('Eroare','e')}
+}
+
+async function resetPeriod(){
+    const f=$('resetFrom').value,t=$('resetTo').value;
+    if(!f||!t){toast('Selecteaza ambele date (de la / pana la)','e');return}
+    if(!confirm(`Stergi TOATE fisierele din perioada ${f} - ${t}?\nPDF-urile vor fi sterse din folderul Output.`))return;
+    try{
+        const r=await fetch('/api/reset-period',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:f,to:t})});
+        const d=await r.json();
+        toast(`Perioada resetata! ${d.deleted} fisiere sterse`,'s');
+        $('resetFrom').value='';$('resetTo').value='';
+        loadDash();
+    }catch(e){toast('Eroare','e')}
+}
+
+// DAILY
+async function loadDaily(){
+    let u='/api/daily-summary?';const f=$('dFrom').value,t=$('dTo').value;
+    if(f)u+=`from=${f}&`;if(t)u+=`to=${t}&`;
+    try{const r=await fetch(u);const d=await r.json();
+    $('dayGrid').innerHTML=d.days.length?d.days.map(x=>`<div class="dcard"><div class="dh"><div class="dd"><i class="fas fa-calendar-day"></i> ${fmtD(x.date)}</div><div class="de">${x.cost.toFixed(2)} €</div></div><div class="ds"><div>Fisiere: <span>${x.files}</span></div><div>Pagini: <span>${x.pages}</span></div></div><div class="df">${x.filenames.join(', ')}</div></div>`).join(''):'<div class="empty"><i class="fas fa-calendar-times"></i>Niciun upload</div>';}catch(e){}
+}
+function clearDF(){$('dFrom').value='';$('dTo').value='';loadDaily()}
+
+// MONTHLY
+async function loadMon(){
+    try{const r=await fetch('/api/monthly-summary');const d=await r.json();
+    $('monGrid').innerHTML=d.months.length?d.months.map(m=>`<div class="mcard"><div><h4><i class="fas fa-calendar" style="color:var(--blue2)"></i> ${fmtM(m.month)}</h4><div class="ms"><div>Fisiere: <span>${m.files}</span></div><div>Pagini: <span>${m.pages}</span></div><div>Zile: <span>${m.days_active}</span></div></div></div><div class="mt"><div class="ma">${m.cost.toFixed(2)} €</div><div class="ml">Bani castigati</div></div></div>`).join(''):'<div class="empty"><i class="fas fa-calendar-times"></i>Niciun upload</div>';}catch(e){}
+}
+
+// SETTINGS
+async function loadSets(){try{const r=await fetch('/api/settings');const d=await r.json();$('sInc').value=d.monthly_income;$('sDpg').value=d.daily_pages;$('sDm').value=d.days_per_month;$('sCost').textContent=(d.monthly_income/(d.daily_pages*d.days_per_month)).toFixed(2)}catch(e){}}
+async function saveSets(){
+    const p={monthly_income:+$('sInc').value,daily_pages:+$('sDpg').value,days_per_month:+$('sDm').value};
+    try{const r=await fetch('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});const d=await r.json();cpp=d.cost_per_page;$('sCost').textContent=cpp.toFixed(2);$('chipCost').textContent=cpp.toFixed(2);toast('Setari salvate! Cost: '+cpp.toFixed(2)+' €/pag','s')}catch(e){toast('Eroare','e')}
+}
+
+// INIT
+flatpickr('#fFrom',{dateFormat:'Y-m-d',theme:'dark'});
+flatpickr('#fTo',{dateFormat:'Y-m-d',theme:'dark'});
+flatpickr('#dFrom',{dateFormat:'Y-m-d',theme:'dark'});
+flatpickr('#dTo',{dateFormat:'Y-m-d',theme:'dark'});
+flatpickr('#resetFrom',{dateFormat:'Y-m-d',theme:'dark'});
+flatpickr('#resetTo',{dateFormat:'Y-m-d',theme:'dark'});
+loadStats();
+</script>
+</body>
+</html>
