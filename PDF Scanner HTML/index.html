@@ -69,6 +69,10 @@
         .badge-err{background:rgba(214,48,49,.12);color:var(--red)}
         .fitem .x{width:26px;height:26px;border:none;background:rgba(214,48,49,.08);color:var(--red);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
         .fitem .x:hover{background:rgba(214,48,49,.2)}
+        .manual-wrap{display:inline-flex;align-items:center;gap:8px}
+        .manual-lbl{font-size:12px;color:var(--text2);white-space:nowrap}
+        .manual-pages{width:58px;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-weight:600}
+        .manual-pages:focus{border-color:var(--accent);outline:none}
 
         .rpanel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);display:flex;flex-direction:column}
         .rpanel .rhead{padding:14px 18px;border-bottom:1px solid var(--border);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
@@ -199,7 +203,8 @@
                 <button class="btn btn-ghost" onclick="clearAll()"><i class="fas fa-trash-alt"></i> Sterge Tot</button>
             </div>
             <div class="flist" id="flist"></div>
-            <div class="note-box"><i class="fas fa-info-circle"></i> Datele sunt salvate local in browser (localStorage). Nu se pierd la refresh.</div>
+            <div class="note-box" id="manualHint" style="display:none"><i class="fas fa-edit"></i> <strong>Fisiere fara numar automat:</strong> scrie numarul de pagini in caseta „Scrie nr. pagini” (il gasesti in Adobe Reader: File → Proprietati → Pagini), apoi apasa <strong>Salveaza &amp; Inregistreaza</strong>.</div>
+            <div class="note-box"><i class="fas fa-info-circle"></i> Datele sunt salvate local in browser (localStorage). Exporta JSON din Setari inainte de Chrome clean!</div>
         </div>
         <div class="rpanel">
             <div class="rhead"><i class="fas fa-calculator"></i> Rezultat</div>
@@ -313,6 +318,18 @@
             </div>
         </div>
     </div>
+    <div class="panel">
+        <div class="ph"><h3><i class="fas fa-database"></i> Backup Baza de Date</h3></div>
+        <div class="pb">
+            <div style="font-size:13px;color:var(--text2);margin-bottom:14px"><i class="fas fa-exclamation-triangle" style="color:var(--orange)"></i> Daca faci clean in Chrome, datele din localStorage se pierd. Exporta inainte si importa dupa.</div>
+            <div class="filter-row">
+                <button class="btn btn-sm btn-green" onclick="exportJSON()"><i class="fas fa-download"></i> Export JSON (backup)</button>
+                <button class="btn btn-sm btn-green" onclick="exportXlBackup()"><i class="fas fa-file-excel"></i> Export Excel (backup)</button>
+                <label class="btn btn-sm btn-primary" style="cursor:pointer"><i class="fas fa-upload"></i> Import JSON (restaurare)<input type="file" accept=".json" onchange="importJSON(this)" style="display:none"></label>
+            </div>
+            <div class="note-box" style="margin-top:12px"><i class="fas fa-info-circle"></i> <b>Inainte de Chrome clean:</b> apasa "Export JSON". <b>Dupa clean:</b> deschide pagina si apasa "Import JSON" pentru a restaura datele.</div>
+        </div>
+    </div>
 </div>
 
 </div>
@@ -345,7 +362,102 @@ function toast(msg,t='i'){const c=$('toasts'),el=document.createElement('div');e
 function go(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(x=>x.classList.remove('active'));$('p-'+p).classList.add('active');document.querySelector(`.tab-btn[data-p="${p}"]`).classList.add('active');if(p==='upload')refreshStats();if(p==='dashboard')loadDash();if(p==='history')loadHist();if(p==='daily')loadDaily();if(p==='monthly')loadMon();if(p==='settings')loadSets()}
 
 // --- PDF page count ---
-async function countPages(file){try{const buf=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:buf}).promise;return pdf.numPages}catch(e){return 0}}
+async function findCountInSliceBytes(file,start,end){
+    const blob=file.slice(start,Math.min(end,file.size));
+    const buf=await blob.arrayBuffer();
+    const arr=new Uint8Array(buf);
+    const vals=[];
+    const C=[47,67,111,117,110,116];
+    let i=0;
+    while(i<arr.length-12){
+        if(arr[i]===C[0]&&arr[i+1]===C[1]&&arr[i+2]===C[2]&&arr[i+3]===C[3]&&arr[i+4]===C[4]&&arr[i+5]===C[5]){
+            let j=i+6;
+            while(j<arr.length&&(arr[j]===32||arr[j]===9||arr[j]===10||arr[j]===13))j++;
+            let num='';
+            while(j<arr.length&&arr[j]>=48&&arr[j]<=57){num+=String.fromCharCode(arr[j]);j++}
+            if(num.length){const v=parseInt(num,10);if(v>0)vals.push(v)}
+        }
+        i++;
+    }
+    return vals;
+}
+async function countPagesLightweight(file){
+    const head=await file.slice(0,8192).text();
+    const linM=head.match(/\/Linearized[\s\S]{0,400}\/N\s+(\d+)/);
+    if(linM){const n=parseInt(linM[1]);if(n>0)return n}
+
+    const tail=await file.slice(Math.max(0,file.size-512),file.size).text();
+    const xrefM=tail.match(/startxref\s*(\d+)/);
+    if(xrefM){
+        const off=parseInt(xrefM[1]);
+        if(off>0&&off<file.size){
+            const v=await findCountInSliceBytes(file,off,off+2*1024*1024);
+            if(v.length)return Math.max(...v);
+        }
+    }
+
+    const M=1024*1024;
+    const step=file.size>100*M?40*M:10*M;
+    const spots=[[Math.max(0,file.size-3*M),file.size],[0,2*M],[Math.max(0,file.size-8*M),file.size-3*M]];
+    for(let pos=M;pos<file.size-M;pos+=step){
+        spots.push([pos,pos+2*M]);
+    }
+    const all=[];
+    for(const[s,e]of spots){
+        const v=await findCountInSliceBytes(file,s,e);
+        all.push(...v);
+    }
+    return all.length?Math.max(...all):0;
+}
+function countPagesPdfJs(file,timeoutMs){
+    return new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>reject('timeout'),timeoutMs||120000);
+        const url=URL.createObjectURL(file);
+        pdfjsLib.getDocument({url:url}).promise.then(pdf=>{
+            clearTimeout(timer);URL.revokeObjectURL(url);
+            const n=pdf.numPages;pdf.destroy();resolve(n);
+        }).catch(err=>{clearTimeout(timer);URL.revokeObjectURL(url);reject(err)});
+    });
+}
+async function countPagesByTypeObjects(file){
+    const chunks=Math.ceil(file.size/(2*1024*1024));
+    let count=0;
+    // Scan for /Type /Page and /Type/Page
+    // Bytes: / T y p e / P a g e (no space after) -> we check context
+    // Easier: load text chunks and regex, but text might be corrupt.
+    // Let's use bytes for stability.
+    // Sequence 1: /Type /Page -> [47,84,121,112,101,32,47,80,97,103,101]
+    // Sequence 2: /Type/Page  -> [47,84,121,112,101,47,80,97,103,101]
+    
+    for(let i=0;i<chunks;i++){
+        const start=i*2*1024*1024;
+        const end=Math.min(file.size,start+2*1024*1024+20); // +20 overlap
+        const buf=await file.slice(start,end).arrayBuffer();
+        const u8=new Uint8Array(buf);
+        
+        // Simple scan loop
+        for(let j=0;j<u8.length-10;j++){
+            // Check for /Type
+            if(u8[j]===47 && u8[j+1]===84 && u8[j+2]===121 && u8[j+3]===112 && u8[j+4]===101){
+                let k=j+5;
+                // skip optional space
+                if(u8[k]===32) k++;
+                // Check for /Page
+                if(u8[k]===47 && u8[k+1]===80 && u8[k+2]===97 && u8[k+3]===103 && u8[k+4]===101){
+                    // Check next char is NOT 's' (115) -> so we don't count /Pages
+                    if(u8[k+5]!==115) count++;
+                }
+            }
+        }
+    }
+    return count;
+}
+
+async function countPages(file){
+    try{const pg=await countPagesPdfJs(file,120000);if(pg>0)return pg}catch(e){}
+    try{const pg=await countPagesLightweight(file);if(pg>0)return pg}catch(e2){}
+    return 0;
+}
 
 // --- Upload ---
 const zone=$('zone'),fi=$('finput');
@@ -354,7 +466,7 @@ const zone=$('zone'),fi=$('finput');
 zone.addEventListener('drop',e=>{addF(Array.from(e.dataTransfer.files))});
 fi.addEventListener('change',e=>{addF(Array.from(e.target.files));e.target.value=''});
 
-function addF(files){
+async function addF(files){
     const pdfs=files.filter(f=>f.name.toLowerCase().endsWith('.pdf'));
     if(!pdfs.length){toast('Doar fisiere PDF!','e');return}
     if(sel.length+pdfs.length>20){toast('Maxim 20 fisiere!','e');return}
@@ -368,11 +480,13 @@ function addF(files){
         }
     });
     renderF();
-    sel.forEach((s,i)=>{
-        if(i>=startIdx&&s.pages===null){
-            countPages(s.file).then(pg=>{if(i<sel.length&&sel[i].file===s.file)sel[i].pages=pg;renderF();updatePrev()});
+    for(let i=startIdx;i<sel.length;i++){
+        if(sel[i]&&sel[i].pages===null){
+            const pg=await countPages(sel[i].file);
+            if(i<sel.length&&sel[i])sel[i].pages=pg;
+            renderF();updatePrev();
         }
-    });
+    }
 }
 
 function rmF(i){sel.splice(i,1);renderF();updatePrev()}
@@ -386,22 +500,26 @@ function updatePrev(){
     $('resSub').textContent=sel.length?sel.some(s=>s.pages===null)?'Se numara...':sel.length+' fisiere - gata':'Selecteaza PDF-uri';
 }
 
+function setManualPages(i,v){const n=parseInt(v,10);if(!isNaN(n)&&n>=0){sel[i].pages=n;renderF();updatePrev()}}
 function renderF(){
     const c=$('flist'),a=$('uActions');
-    if(!sel.length){c.innerHTML='';a.style.display='none';return}
+    if(!sel.length){c.innerHTML='';a.style.display='none';if($('manualHint'))$('manualHint').style.display='none';return}
     a.style.display='flex';
+    const needManual=sel.some(s=>s.pages===0);
+    if($('manualHint'))$('manualHint').style.display=needManual?'block':'none';
     c.innerHTML=sel.map((s,i)=>{
         const f=s.file,sz=(f.size/1048576).toFixed(2);
-        let badge;
-        if(s.pages===null)badge='<span class="badge badge-wait"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Se numara...</span>';
-        else if(s.pages===0)badge='<span class="badge badge-err"><i class="fas fa-times"></i> Eroare</span>';
+        let badge,extra='';
+        if(s.pages===null){badge=`<span class="badge badge-wait"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Se numara...</span>`}
+        else if(s.pages===0){badge='<span class="badge badge-err">Nu pot numara automat</span>';extra=`<span class="manual-wrap"><label class="manual-lbl">Scrie nr. pagini:</label><input type="number" min="1" placeholder="ex: 450" class="manual-pages" onchange="setManualPages(${i},this.value)"></span>`}
         else{const cost=(s.pages*cpp).toFixed(2);badge=`<span class="badge badge-ok"><i class="fas fa-file-alt"></i> ${s.pages} pag</span><span style="font-size:12px;font-weight:600;color:var(--green2);white-space:nowrap">${cost} €</span>`}
-        return`<div class="fitem"><div class="ico"><i class="fas fa-file-pdf"></i></div><div class="inf"><div class="n">${f.name}</div><div class="m">${sz} MB</div></div>${badge}<button class="x" onclick="rmF(${i})"><i class="fas fa-times"></i></button></div>`;
+        return`<div class="fitem"><div class="ico"><i class="fas fa-file-pdf"></i></div><div class="inf"><div class="n">${f.name}</div><div class="m">${sz} MB</div></div>${badge}${extra}<button class="x" onclick="rmF(${i})"><i class="fas fa-times"></i></button></div>`;
     }).join('');
 }
 
 function doSave(){
     if(!sel.length||sel.some(s=>s.pages===null))return;
+    if(sel.some(s=>s.pages===0)){toast('Completeaza manual paginile pentru fisierele nerecunoscute','e');return}
     const db=loadDB(),now=nowISO(),today=todayStr();
     const results=[];
     sel.forEach(s=>{
@@ -503,6 +621,51 @@ function saveSets(){const db=loadDB();db.settings={monthly_income:+$('sInc').val
 // --- Reset ---
 function resetToday(){const today=todayStr();if(!confirm(`Stergi TOATE datele din ${today}?`))return;const db=loadDB();const n=db.uploads.filter(u=>u.timestamp.substring(0,10)===today).length;db.uploads=db.uploads.filter(u=>u.timestamp.substring(0,10)!==today);saveDB(db);toast(`Ziua resetata! ${n} sterse`,'s');loadDash()}
 function resetPeriod(){const f=$('resetFrom').value,t=$('resetTo').value;if(!f||!t){toast('Selecteaza ambele date','e');return}if(!confirm(`Stergi datele din ${f} - ${t}?`))return;const db=loadDB();const n=db.uploads.filter(u=>u.timestamp.substring(0,10)>=f&&u.timestamp.substring(0,10)<=t).length;db.uploads=db.uploads.filter(u=>!(u.timestamp.substring(0,10)>=f&&u.timestamp.substring(0,10)<=t));saveDB(db);toast(`${n} sterse`,'s');$('resetFrom').value='';$('resetTo').value='';loadDash()}
+
+// --- Backup/Restore ---
+function exportJSON(){
+    const db=loadDB();
+    const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='pdf_scanner_backup_'+todayStr()+'.json';a.click();
+    URL.revokeObjectURL(a.href);
+    toast('Backup JSON descarcat','s');
+}
+
+function exportXlBackup(){
+    const db=loadDB(),ups=db.uploads.sort((a,b)=>b.timestamp.localeCompare(a.timestamp));
+    const rows=[['Data','Ora','Fisier','Pagini','Cost (EUR)','Marime (MB)']];
+    ups.forEach(u=>rows.push([u.timestamp.substring(0,10),u.timestamp.substring(11,19),u.filename,u.pages,u.cost,(u.size_bytes/1048576).toFixed(2)]));
+    const ws=XLSX.utils.aoa_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Istoric');
+    const daily={};ups.forEach(u=>{const d=u.timestamp.substring(0,10);if(!daily[d])daily[d]={files:0,pages:0,cost:0};daily[d].files++;daily[d].pages+=u.pages;daily[d].cost+=u.cost});
+    const dr=[['Data','Fisiere','Pagini','Cost (EUR)']];Object.keys(daily).sort().reverse().forEach(d=>dr.push([d,daily[d].files,daily[d].pages,daily[d].cost.toFixed(2)]));
+    const ws2=XLSX.utils.aoa_to_sheet(dr);XLSX.utils.book_append_sheet(wb,ws2,'Sumar Zilnic');
+    XLSX.writeFile(wb,'pdf_scanner_backup_'+todayStr()+'.xlsx');
+    toast('Backup Excel descarcat','s');
+}
+
+function importJSON(input){
+    const file=input.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=function(e){
+        try{
+            const data=JSON.parse(e.target.result);
+            if(!data.uploads||!Array.isArray(data.uploads)){toast('Fisier JSON invalid','e');return}
+            const db=loadDB();
+            const existingIds=new Set(db.uploads.map(u=>u.id));
+            let added=0;
+            data.uploads.forEach(u=>{
+                if(!existingIds.has(u.id)){db.uploads.push(u);added++}
+            });
+            if(data.settings)db.settings=data.settings;
+            saveDB(db);cpp=getCPP();
+            toast(`Import OK! ${added} inregistrari noi adaugate (din ${data.uploads.length} total)`,'s');
+            refreshStats();
+        }catch(err){toast('Eroare la citirea fisierului JSON','e')}
+    };
+    reader.readAsText(file);
+    input.value='';
+}
 
 // --- Init ---
 flatpickr('#fFrom',{dateFormat:'Y-m-d',theme:'dark'});flatpickr('#fTo',{dateFormat:'Y-m-d',theme:'dark'});
