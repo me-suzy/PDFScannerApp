@@ -1,0 +1,21 @@
+problema. primesc 2000 euro lunar daca scanez zilnic o carte de minim 700 de pagini. cat costa fiecare pagina?
+Fiecare pagină valorează aproximativ 0,095 euro (adică vreo 9 cenți sau 47 de bani).
+Iată calculul rapid:
+Pagini pe lună: 30 zile × 700 pagini = 21.000 pagini.
+Preț per pagină: 2.000 € ÷ 21.000 pagini ≈ 0,0952 €.
+Dacă vrei să fii extrem de precis și luna are 31 de zile, prețul scade la 0,092 €. Spor la scanat, e o leafă de aproape 10.000 lei pe lună!
+Răspunsurile de la AI pot include greșeli. Află mai multe
+
+
+
+cat costa 20 pag
+Pentru volumul de lucru descris, 20 de pagini valorează aproximativ 1,90 euro (aproape 10 lei).
+Calculul detaliat
+Dacă păstrăm media de 21.000 de pagini scanate pe lună (700 pagini/zi × 30 zile) pentru un venit de 2.000 euro:
+Preț per pagină: 0,0952 euro.
+Cost pentru 20 pagini: 20 × 0,0952 ≈ 1,90 euro.
+Echivalentul în lei
+La un curs valutar de aproximativ 5,10 RON pentru 1 EUR: 
+20 de pagini valorează aproximativ 9,70 lei.
+Întreaga leafă lunară de 2.000 euro reprezintă aproximativ 10.200 lei. 
+Acesta este „câștigul” tău teoretic pentru efortul de a scana 20 de pagini în contextul acestui scenariu.
